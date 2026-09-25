@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>齐司礼 · Sariel Qi · 资产管理终端</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace; }
+        body {
+            background: radial-gradient(circle at 50% 50%, #0d2a26 0%, #061715 80%);
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; padding: 20px; overflow: hidden; color: #b5d9dc;
+        }
+        #matrixCanvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.10; }
+
+        .app-container {
+            position: relative; width: 100%; max-width: 1400px; height: 94vh; max-height: 980px;
+            background: radial-gradient(circle at 50% 50%, #0d2a26 0%, #061715 80%);
+            backdrop-filter: blur(20px); border-radius: 20px; overflow: hidden;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 0 1px rgba(181,217,220,0.25), 0 0 40px rgba(181,217,220,0.08);
+            display: flex; flex-direction: column; z-index: 10;
+        }
+
+        .top-logo {
+            position: absolute; top: 18px; left: 28px; z-index: 1500;
+            font-family: 'Great Vibes', cursive;
+            font-weight: 400;
+            font-size: 28px; letter-spacing: 0;
+            color: #b5d9dc;
+            text-shadow: 0 0 20px rgba(181,217,220,0.5);
+            pointer-events: none;
+        }
+
+        /* 进入页 */
+        .landing-layer {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 50% 50%, #0d2a26 0%, #061715 80%);
+            z-index: 1100; display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        .bg-deco {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            width: 120vmin; height: 120vmin; border-radius: 50%;
+            border: 1px solid rgba(181,217,220,0.05); pointer-events: none;
+        }
+        .bg-deco::before, .bg-deco::after {
+            content: ''; position: absolute; border-radius: 50%;
+            border: 1px solid rgba(181,217,220,0.06);
+        }
+        .bg-deco::before { inset: 10%; }
+        .bg-deco::after { inset: 25%; border-color: rgba(181,217,220,0.08); }
+        .landing-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .logo-ring {
+            position: relative; width: 260px; height: 260px;
+            display: flex; align-items: center; justify-content: center; margin-bottom: 30px;
+        }
+        .logo-ring::before {
+            content: ''; position: absolute; inset: 0; border-radius: 50%;
+            border: 1px solid rgba(181,217,220,0.25); animation: rotateRing 20s linear infinite;
+        }
+        .logo-ring::after {
+            content: ''; position: absolute; inset: 18px; border-radius: 50%;
+            border: 1px solid rgba(181,217,220,0.15); animation: rotateRing 15s linear infinite reverse;
+        }
+        @keyframes rotateRing { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .logo-letter {
+            font-family: 'Great Vibes', cursive;
+            font-weight: 400;
+            font-size: 110px;
+            color: #b5d9dc;
+            letter-spacing: 0;
+            line-height: 1;
+            text-shadow: 0 0 50px rgba(181,217,220,0.6), 0 0 100px rgba(181,217,220,0.3);
+            z-index: 2;
+            padding-bottom: 10px;
+        }
+        .chinese-name {
+            font-size: 34px; letter-spacing: 16px; color: #b5d9dc;
+            font-weight: 300; margin-bottom: 60px; padding-left: 16px;
+        }
+        .enter-btn {
+            width: 280px; padding: 20px 0; background: transparent;
+            border: 1px solid rgba(181,217,220,0.6); border-radius: 4px;
+            color: #b5d9dc; font-size: 16px; letter-spacing: 6px;
+            cursor: pointer; transition: all 0.3s ease; font-family: inherit;
+        }
+        .enter-btn:hover {
+            background: rgba(181,217,220,0.08); border-color: #b5d9dc;
+            box-shadow: 0 0 30px rgba(181,217,220,0.25); letter-spacing: 8px;
+        }
+
+        /* 登录 */
+        .login-layer {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 50% 50%, #0d2a26 0%, #061715 80%);
+            z-index: 1050; display: none; flex-direction: column;
+            align-items: center; justify-content: center; padding: 40px 30px;
+        }
+        .login-layer.show { display: flex; }
+        .login-title { font-size: 15px; letter-spacing: 4px; color: #b5d9dc; margin-bottom: 40px; }
+        .login-input {
+            width: 100%; max-width: 400px; background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(181,217,220,0.4); border-radius: 40px;
+            padding: 16px 24px; font-size: 15px; color: #E8E8E3;
+            outline: none; text-align: center; letter-spacing: 2px;
+            margin-bottom: 16px; font-family: inherit; transition: all 0.3s;
+        }
+        .login-input:focus { border-color: #b5d9dc; box-shadow: 0 0 30px rgba(181,217,220,0.25); }
+        .login-input::placeholder { color: rgba(114,118,122,0.7); font-size: 12px; }
+        .login-feedback { margin-top: 16px; font-size: 13px; letter-spacing: 3px; min-height: 20px; text-transform: uppercase; }
+        .back-btn {
+            margin-top: 30px; font-size: 12px; letter-spacing: 3px;
+            color: rgba(181,217,220,0.5); cursor: pointer;
+        }
+        .back-btn:hover { color: #b5d9dc; }
+
+        /* 个人信息档案页 */
+        .profile-layer {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 50% 50%, #0d2a26 0%, #061715 80%);
+            z-index: 900; display: none; flex-direction: column;
+            align-items: center; justify-content: flex-start;
+            padding: 80px 40px 40px; overflow-y: auto;
+        }
+        .profile-layer.show { display: flex; }
+
+        .profile-card {
+            max-width: 1100px; width: 100%;
+            background: rgba(12,40,36,0.55); backdrop-filter: blur(20px);
+            border: 1px solid rgba(181,217,220,0.18); border-radius: 24px;
+            padding: 44px 48px; box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+        }
+        .profile-header {
+            display: flex; align-items: baseline; gap: 24px;
+            border-bottom: 1px solid rgba(181,217,220,0.2);
+            padding-bottom: 22px; margin-bottom: 30px;
+        }
+        .profile-name-cn { font-size: 34px; color: #E8E8E3; letter-spacing: 8px; font-weight: 300; }
+        .profile-name-en {
+            font-family: 'Great Vibes', cursive;
+            font-size: 56px; color: #b5d9dc;
+            line-height: 1;
+        }
+        .profile-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 18px 30px; margin-bottom: 32px;
+        }
+        .profile-item-label {
+            font-size: 11px; letter-spacing: 3px; color: #72767A;
+            margin-bottom: 8px; text-transform: uppercase;
+        }
+        .profile-item-value { font-size: 17px; color: #b5d9dc; letter-spacing: 1px; }
+        .profile-item-value.gold { color: #D8BD7A; font-weight: 500; }
+
+        /* 图表 */
+        .chart-section {
+            background: rgba(0,0,0,0.25);
+            border: 1px solid rgba(181,217,220,0.12);
+            border-radius: 20px; padding: 30px 32px; margin-bottom: 28px;
+        }
+        .chart-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+        }
+        .chart-header-title {
+            font-size: 13px; letter-spacing: 4px; color: #b5d9dc; text-transform: uppercase;
+        }
+        .chart-tabs { display: flex; gap: 4px; background: rgba(0,0,0,0.4); padding: 3px; border-radius: 30px; border: 1px solid rgba(181,217,220,0.15); }
+        .chart-tab {
+            padding: 8px 20px; font-size: 11px; letter-spacing: 2px;
+            color: #72767A; border-radius: 20px; cursor: pointer;
+            transition: all 0.25s; text-transform: uppercase; font-weight: 500;
+        }
+        .chart-tab.active {
+            background: rgba(181,217,220,0.15); color: #b5d9dc;
+            box-shadow: 0 0 12px rgba(181,217,220,0.15);
+        }
+
+        .donut-area { display: grid; grid-template-columns: 300px 1fr; gap: 40px; align-items: center; }
+        .donut-wrap { display: flex; justify-content: center; align-items: center; position: relative; }
+        .donut-chart { width: 260px; height: 260px; transform: rotate(-90deg); }
+        .donut-chart circle { fill: none; stroke-width: 20; stroke-linecap: butt; transition: stroke-dasharray 1.4s ease; }
+        .donut-center {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;
+        }
+        .donut-center-label { font-size: 10px; letter-spacing: 3px; color: #72767A; margin-bottom: 6px; }
+        .donut-center-value { font-size: 22px; color: #D8BD7A; font-weight: 500; }
+
+        .legend-grid { display: flex; flex-direction: column; gap: 14px; }
+        .legend-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 0; border-bottom: 1px solid rgba(181,217,220,0.06); font-size: 13px;
+        }
+        .legend-left { display: flex; align-items: center; gap: 12px; color: #E8E8E3; letter-spacing: 1px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 2px; box-shadow: 0 0 8px currentColor; }
+        .legend-right { color: #D8BD7A; font-weight: 500; font-size: 14px; font-variant-numeric: tabular-nums; }
+
+        .bar-chart-h { display: flex; flex-direction: column; gap: 18px; padding: 8px 0; }
+        .bar-row { display: flex; align-items: center; gap: 16px; }
+        .bar-label {
+            min-width: 130px; font-size: 12px; color: #E8E8E3;
+            letter-spacing: 1px; text-align: right;
+        }
+        .bar-track {
+            flex: 1; height: 22px; background: rgba(255,255,255,0.04);
+            border-radius: 3px; overflow: hidden; position: relative;
+        }
+        .bar-fill-h {
+            height: 100%; border-radius: 3px;
+            background: linear-gradient(90deg, rgba(127,180,184,0.5), #b5d9dc);
+            transition: width 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 0 18px rgba(181,217,220,0.35);
+        }
+        .bar-fill-h.gold {
+            background: linear-gradient(90deg, rgba(216,189,122,0.4), #D8BD7A);
+            box-shadow: 0 0 18px rgba(216,189,122,0.5);
+        }
+        .bar-amount {
+            min-width: 130px; font-size: 13px; color: #D8BD7A;
+            font-weight: 500; font-variant-numeric: tabular-nums; text-align: right;
+        }
+
+        .profile-bg-title {
+            font-size: 12px; letter-spacing: 5px; color: #72767A;
+            margin-bottom: 14px; text-transform: uppercase;
+        }
+        .profile-bg-text { font-size: 14px; line-height: 1.9; color: #E8E8E3; }
+
+        .profile-enter-btn {
+            margin-top: 36px; display: block; text-align: center;
+            padding: 18px 40px; border: 1px solid rgba(181,217,220,0.5);
+            color: #b5d9dc; font-size: 14px; letter-spacing: 6px;
+            border-radius: 4px; cursor: pointer; background: transparent;
+            width: 100%; max-width: 480px; margin-left: auto; margin-right: auto;
+            font-family: inherit; transition: all 0.3s;
+        }
+        .profile-enter-btn:hover {
+            background: rgba(181,217,220,0.08); border-color: #b5d9dc;
+            box-shadow: 0 0 30px rgba(181,217,220,0.25); letter-spacing: 8px;
+        }
+
+        /* 生物识别 */
+        .auth-layer {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 50% 50%, #0d2a26 0%, #061715 80%);
+            z-index: 1000; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; padding: 30px;
+        }
+        .auth-layer.hidden { opacity: 0; pointer-events: none; }
+        .bio-container { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+        .auth-title { font-size: 18px; letter-spacing: 3px; color: #b5d9dc; margin-bottom: 28px; text-transform: uppercase; }
+        .face-scan { position: relative; width: 150px; height: 180px; }
+        .face-outline {
+            position: absolute; inset: 0; border: 2px solid rgba(181,217,220,0.3);
+            border-radius: 50% 50% 45% 45%; transition: all 0.3s;
+        }
+        .face-outline.active { border-color: #b5d9dc; box-shadow: 0 0 40px rgba(181,217,220,0.35); }
+        .face-line {
+            position: absolute; left: 10%; right: 10%; height: 2px;
+            background: linear-gradient(90deg, transparent, #b5d9dc, transparent);
+            top: 20%; animation: faceScan 1.5s ease-in-out infinite;
+        }
+        @keyframes faceScan { 0% { top: 15%; opacity: 0.3; } 50% { top: 80%; opacity: 1; } 100% { top: 15%; opacity: 0.3; } }
+        .fingerprint-svg { width: 120px; height: 120px; stroke: #b5d9dc; stroke-width: 2; fill: none; stroke-linecap: round; }
+        .fingerprint-line { stroke-dasharray: 200; stroke-dashoffset: 200; animation: drawPrint 3s forwards ease-in-out; }
+        @keyframes drawPrint { 0% { stroke-dashoffset: 200; } 100% { stroke-dashoffset: 0; } }
+        .iris-scan { position: relative; width: 150px; height: 150px; }
+        .iris-outer { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(181,217,220,0.5); }
+        .iris-inner { position: absolute; inset: 14px; border-radius: 50%; border: 2px dashed rgba(181,217,220,0.7); animation: rotateIris 4s linear infinite; }
+        .iris-mist {
+            position: absolute; inset: 34px; border-radius: 50%;
+            background: radial-gradient(circle at 40% 40%, #b5d9dc, transparent 70%);
+            opacity: 0.5; animation: mistPulse 1.8s infinite alternate;
+        }
+        @keyframes mistPulse { 0% { opacity: 0.3; transform: scale(0.96); } 100% { opacity: 0.7; transform: scale(1.04); } }
+        @keyframes rotateIris { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* 主界面 */
+        .main-interface { display: flex; flex-direction: column; height: 100%; width: 100%; overflow: hidden; }
+        .status-bar {
+            display: flex; justify-content: space-between;
+            padding: 18px 28px 8px 140px; font-size: 13px; color: #72767A;
+        }
+        .view-container { flex: 1; overflow: hidden; position: relative; }
+        .view {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            padding: 0 28px 20px; overflow-y: auto; pointer-events: none;
+            opacity: 0; transition: opacity 0.35s, transform 0.35s; transform: translateX(20px);
+        }
+        .view.active { pointer-events: auto; opacity: 1; position: relative; transform: translateX(0); }
+        .total-net-worth { padding: 36px 0 20px; text-align: center; }
+        .total-label { font-size: 14px; letter-spacing: 5px; color: #72767A; margin-bottom: 12px; }
+        .total-amount {
+            font-size: 72px; font-weight: 500; color: #D8BD7A;
+            filter: blur(8px); transition: filter 0.5s; cursor: pointer;
+            font-variant-numeric: tabular-nums;
+        }
+        .total-amount.revealed { filter: blur(0px); }
+        .total-sub { font-size: 16px; color: #b5d9dc; margin-top: 10px; letter-spacing: 3px; }
+        .main-tabs {
+            display: flex; gap: 8px; margin: 16px auto 12px;
+            background: rgba(0,0,0,0.3); padding: 4px; border-radius: 40px;
+            border: 1px solid rgba(181,217,220,0.15); max-width: 480px;
+        }
+        .tab-btn {
+            flex: 1; text-align: center; padding: 12px 0; font-size: 13px;
+            letter-spacing: 2px; color: #72767A; border-radius: 30px;
+            transition: all 0.2s; text-transform: uppercase; font-weight: 500; cursor: pointer;
+        }
+        .tab-btn.active {
+            background: rgba(181,217,220,0.15); color: #b5d9dc;
+            box-shadow: 0 0 15px rgba(181,217,220,0.15);
+            border: 1px solid rgba(181,217,220,0.35);
+        }
+        .terminal-feed {
+            height: 280px; overflow-y: auto; margin-top: 16px; padding-right: 4px;
+            mask-image: linear-gradient(to bottom, transparent 0%, black 46px, black 100%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 46px, black 100%);
+            max-width: 900px; margin-left: auto; margin-right: auto;
+        }
+        .feed-line {
+            font-size: 13px; line-height: 1.7; padding: 6px 0;
+            border-bottom: 1px solid rgba(181,217,220,0.08); color: #b5d9dc;
+            display: flex; gap: 12px;
+        }
+        .feed-time { color: #b5d9dc; opacity: 0.9; min-width: 68px; font-weight: 500; }
+        .feed-desc { color: #E8E8E3; }
+        .hold-card {
+            padding: 18px 22px; margin-bottom: 10px; display: flex;
+            justify-content: space-between; align-items: center; cursor: pointer;
+            max-width: 900px; margin-left: auto; margin-right: auto;
+            background: rgba(12,40,36,0.7);
+            border: 1px solid rgba(181,217,220,0.2);
+            border-radius: 20px; transition: all 0.25s;
+        }
+        .hold-card:hover {
+            border-color: rgba(181,217,220,0.5);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.7), 0 0 25px rgba(181,217,220,0.15);
+            transform: translateY(-2px);
+        }
+        .hold-card-name { font-size: 16px; color: #b5d9dc; font-weight: 500; }
+        .hold-card-sub { font-size: 12px; color: #72767A; margin-top: 3px; }
+        .hold-card-value { font-size: 20px; color: #D8BD7A; font-weight: 500; font-variant-numeric: tabular-nums; }
+        .hold-card-pnl { font-size: 13px; color: #4FC38A; }
+
+        /* 资产配置卡片 */
+        .allocation-card {
+            max-width: 900px; margin: 18px auto 0;
+            background: rgba(12,40,36,0.7);
+            border: 1px solid rgba(181,217,220,0.2);
+            border-radius: 20px; padding: 26px 30px;
+        }
+        .allocation-title {
+            font-size: 13px; letter-spacing: 3px; color: #b5d9dc; margin-bottom: 20px;
+        }
+        .allocation-grid {
+            display: grid; grid-template-columns: 160px 1fr;
+            gap: 30px; align-items: center;
+        }
+        .mini-donut { position: relative; width: 160px; height: 160px; }
+        .mini-donut svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .mini-donut circle { fill: none; stroke-width: 14; }
+        .mini-center {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;
+        }
+        .mini-center-label { font-size: 8px; letter-spacing: 2px; color: #72767A; }
+        .mini-center-value { font-size: 13px; color: #D8BD7A; font-weight: 500; margin-top: 3px; }
+        .alloc-legend { display: flex; flex-direction: column; gap: 8px; }
+        .alloc-row {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 12px; color: #E8E8E3; padding: 5px 0;
+            border-bottom: 1px solid rgba(181,217,220,0.06);
+        }
+        .alloc-row-left { display: flex; align-items: center; gap: 10px; }
+        .alloc-dot { width: 10px; height: 10px; border-radius: 2px; }
+        .alloc-pct { color: #D8BD7A; font-weight: 500; }
+
+        /* 层级钻取入口卡片（主界面） */
+        .drill-section {
+            max-width: 900px; margin: 18px auto 0;
+        }
+        .drill-entry-title-main {
+            font-size: 13px; letter-spacing: 3px; color: #b5d9dc;
+            margin-bottom: 14px; text-transform: uppercase;
+        }
+        .asset-category-main {
+            margin-bottom: 10px; border-radius: 16px;
+            background: rgba(12,40,36,0.7);
+            border: 1px solid rgba(181,217,220,0.15);
+            overflow: hidden; transition: all 0.25s; cursor: pointer;
+        }
+        .asset-category-main:hover {
+            border-color: rgba(181,217,220,0.5);
+            background: rgba(181,217,220,0.06);
+            transform: translateX(4px);
+            box-shadow: 0 0 20px rgba(181,217,220,0.1);
+        }
+        .category-header-main {
+            padding: 18px 22px; display: flex; justify-content: space-between;
+            align-items: center; font-size: 15px; font-weight: 500; color: #E8E8E3;
+            letter-spacing: 0.5px;
+        }
+        .category-header-main .en { color: #b5d9dc; font-size: 12px; letter-spacing: 2px; }
+
+        /* CASH FLOW */
+        .cashflow-header {
+            padding: 24px 0 10px; display: flex; flex-direction: column;
+            gap: 6px; max-width: 900px; margin: 0 auto;
+        }
+        .secure-badge { font-size: 12px; letter-spacing: 3px; color: #4FC38A; display: flex; align-items: center; gap: 6px; }
+        .secure-dot { width: 6px; height: 6px; background: #4FC38A; border-radius: 50%; box-shadow: 0 0 10px #4FC38A; }
+        .family-office { font-size: 13px; color: #72767A; letter-spacing: 2px; }
+        .welcome-back { font-size: 15px; color: #E8E8E3; letter-spacing: 1px; }
+        .family-wealth-large {
+            font-size: 56px; font-weight: 500; color: #D8BD7A;
+            filter: blur(8px); transition: filter 0.5s; margin: 10px 0 6px;
+            cursor: pointer; font-variant-numeric: tabular-nums;
+        }
+        .family-wealth-large.revealed { filter: blur(0px); }
+        .macro-ledger-title { font-size: 13px; letter-spacing: 3px; color: #b5d9dc; margin: 20px 0 14px; }
+        .ledger-summary {
+            display: flex; justify-content: space-between;
+            background: rgba(0,0,0,0.3); border-radius: 16px;
+            padding: 16px 20px; margin-bottom: 18px;
+            border: 1px solid rgba(181,217,220,0.12);
+        }
+        .summary-item { font-size: 12px; color: #72767A; text-align: center; }
+        .summary-value { font-size: 18px; color: #E8E8E3; font-weight: 500; }
+        .summary-value.green { color: #4FC38A; }
+        .summary-value.red { color: #B85C5C; }
+        .flow-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; max-width: 900px; margin-left: auto; margin-right: auto; }
+        .flow-item {
+            background: rgba(0,0,0,0.25); border-left: 3px solid #b5d9dc;
+            padding: 16px 20px; border-radius: 0 12px 12px 0;
+            border: 1px solid rgba(181,217,220,0.1); border-left-width: 3px;
+            transition: all 0.2s; cursor: pointer;
+        }
+        .flow-item:hover {
+            background: rgba(181,217,220,0.05);
+            border-color: rgba(181,217,220,0.35); transform: translateX(4px);
+        }
+        .flow-amount { font-size: 18px; color: #D8BD7A; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .flow-desc { font-size: 14px; color: #E8E8E3; margin: 5px 0 4px; }
+        .flow-note { font-size: 12px; color: #72767A; font-style: italic; }
+        .today-section { margin-top: 14px; max-width: 900px; margin-left: auto; margin-right: auto; }
+        .today-title { font-size: 13px; letter-spacing: 3px; color: #b5d9dc; margin-bottom: 12px; }
+        .micro-flow {
+            display: flex; justify-content: space-between; font-size: 13px;
+            padding: 10px 0; border-bottom: 1px solid rgba(181,217,220,0.08); color: #E8E8E3;
+        }
+        .micro-time { color: #72767A; width: 64px; }
+        .micro-amount { color: #D8BD7A; font-weight: 500; font-variant-numeric: tabular-nums; }
+        .micro-desc { color: #b5d9dc; }
+
+        /* DRILL 页面 */
+        .drill-view { padding: 0 2px; max-width: 900px; margin: 0 auto; }
+        .drill-back {
+            font-size: 14px; color: #b5d9dc; padding: 14px 0 10px;
+            letter-spacing: 1px; display: flex; align-items: center;
+            gap: 6px; cursor: pointer;
+        }
+        .drill-back:hover { color: #E8E8E3; }
+        .asset-category {
+            margin-bottom: 10px; border-radius: 16px;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid rgba(181,217,220,0.15);
+            overflow: hidden; transition: all 0.2s; cursor: pointer;
+        }
+        .asset-category:hover {
+            border-color: rgba(181,217,220,0.45);
+            background: rgba(181,217,220,0.05);
+        }
+        .category-header {
+            padding: 18px 22px; display: flex; justify-content: space-between;
+            align-items: center; font-size: 16px; font-weight: 500; color: #E8E8E3;
+        }
+        .category-header .en { color: #b5d9dc; font-size: 13px; letter-spacing: 1px; }
+        .holding-item {
+            padding: 16px 20px; background: rgba(0,0,0,0.3);
+            border-radius: 12px; border: 1px solid rgba(181,217,220,0.12);
+            margin-bottom: 8px; display: flex; flex-direction: column;
+            gap: 6px; cursor: pointer; transition: all 0.2s;
+        }
+        .holding-item:hover {
+            border-color: rgba(181,217,220,0.5);
+            background: rgba(181,217,220,0.05); transform: translateX(4px);
+        }
+        .holding-name { font-size: 16px; color: #b5d9dc; font-weight: 500; }
+        .holding-sub { font-size: 12px; color: #72767A; }
+        .holding-value { font-size: 18px; color: #D8BD7A; font-weight: 500; align-self: flex-end; font-variant-numeric: tabular-nums; }
+
+        /* AI FAB */
+        .ai-fab {
+            position: absolute; bottom: 28px; right: 28px;
+            width: 68px; height: 68px; border-radius: 50%;
+            background: rgba(10,34,30,0.9); backdrop-filter: blur(16px);
+            border: 1px solid #b5d9dc;
+            box-shadow: 0 0 25px rgba(181,217,220,0.35);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 30px; color: #b5d9dc; z-index: 200; cursor: pointer;
+            animation: fabPulse 3s infinite alternate;
+        }
+        @keyframes fabPulse {
+            0% { box-shadow: 0 0 25px rgba(181,217,220,0.35); }
+            100% { box-shadow: 0 0 35px rgba(181,217,220,0.55); }
+        }
+        .ai-fab:hover { transform: scale(1.08); background: rgba(181,217,220,0.15); }
+        .ai-dialog-overlay {
+            position: absolute; bottom: 110px; right: 28px; width: 380px;
+            z-index: 300; background: rgba(10,34,30,0.95);
+            backdrop-filter: blur(24px); border: 1px solid #b5d9dc;
+            border-radius: 24px; padding: 24px; display: none;
+            flex-direction: column; gap: 16px;
+        }
+        .ai-dialog-overlay.show { display: flex; }
+        .ai-message { font-size: 14px; color: #E8E8E3; line-height: 1.6; }
+        .ai-message strong { color: #b5d9dc; }
+        .ai-options { display: flex; gap: 10px; flex-wrap: wrap; }
+        .ai-option-btn {
+            flex: 1; min-width: 100px; background: rgba(181,217,220,0.05);
+            border: 1px solid rgba(181,217,220,0.4); color: #b5d9dc;
+            padding: 12px 8px; border-radius: 40px; font-size: 12px;
+            text-align: center; cursor: pointer;
+        }
+        .ai-option-btn:hover { background: rgba(181,217,220,0.15); border-color: #b5d9dc; }
+
+        .modal-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px); z-index: 500; display: none;
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-card {
+            background: rgba(10,34,30,0.98); border: 1px solid #b5d9dc;
+            border-radius: 24px; padding: 28px; width: 100%;
+            max-width: 560px; max-height: 75%; overflow-y: auto; color: #E8E8E3;
+        }
+        .modal-row {
+            display: flex; justify-content: space-between; padding: 12px 0;
+            font-size: 14px; border-bottom: 1px solid rgba(181,217,220,0.1);
+        }
+        .modal-label { color: #72767A; }
+        .modal-value { color: #D8BD7A; font-weight: 500; }
+
+        .security-alert {
+            position: absolute; inset: 0; background: rgba(128,20,20,0.9);
+            backdrop-filter: blur(16px); z-index: 2000; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            gap: 30px; color: #fff; text-align: center; padding: 30px;
+        }
+        .security-alert.show { display: flex; }
+        .slide-verify {
+            width: 300px; height: 60px; background: rgba(0,0,0,0.7);
+            border-radius: 40px; border: 1px solid #b5d9dc;
+            display: flex; align-items: center; padding: 4px;
+            color: #b5d9dc; font-size: 13px; letter-spacing: 2px;
+            cursor: pointer; overflow: hidden;
+        }
+        .slide-knob {
+            width: 52px; height: 52px;
+            background: linear-gradient(135deg, #b5d9dc, #7fb4b8);
+            border-radius: 50%; margin-right: 10px;
+            display: flex; align-items: center; justify-content: center;
+            color: #0a2220; font-size: 20px; font-weight: bold;
+            transition: all 0.15s;
+        }
+
+        .message-popup {
+            position: absolute; inset: 0; background: rgba(10,34,30,0.95);
+            backdrop-filter: blur(30px); z-index: 2500; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            gap: 24px; padding: 40px 30px; color: #fff;
+        }
+        .message-popup.show { display: flex; }
+        .message-avatar {
+            width: 100px; height: 100px; border-radius: 50%;
+            background: rgba(181,217,220,0.1); border: 2px solid #b5d9dc;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 40px; color: #b5d9dc;
+            box-shadow: 0 0 50px rgba(181,217,220,0.35); margin-bottom: 10px;
+        }
+        .message-sender { font-size: 16px; letter-spacing: 3px; color: #b5d9dc; margin-bottom: 20px; }
+        .message-list { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 560px; }
+        .message-bubble {
+            background: rgba(181,217,220,0.08);
+            border: 1px solid rgba(181,217,220,0.3);
+            border-radius: 18px; padding: 20px 28px;
+            font-size: 16px; color: #E8E8E3; line-height: 1.6; text-align: center;
+        }
+        .message-close {
+            margin-top: 30px; padding: 14px 60px;
+            border: 1px solid #b5d9dc; color: #b5d9dc;
+            border-radius: 40px; font-size: 14px; letter-spacing: 3px;
+            cursor: pointer; background: rgba(181,217,220,0.05);
+        }
+        .message-close:hover { background: rgba(181,217,220,0.15); }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <canvas id="matrixCanvas"></canvas>
+
+    <div class="app-container">
+        <div class="top-logo" id="topLogo" style="display:none;">Sariel</div>
+
+        <!-- 进入页 -->
+        <div class="landing-layer" id="landingPage">
+            <div class="bg-deco"></div>
+            <div class="landing-content">
+                <div class="logo-ring">
+                    <div class="logo-letter">Sariel</div>
+                </div>
+                <div class="chinese-name">齐 司 礼</div>
+                <button class="enter-btn" id="enterBtn">进 入</button>
+            </div>
+        </div>
+
+        <!-- 登录 -->
+        <div class="login-layer" id="loginLayer">
+            <div class="login-title">ENTER IDENTITY & ACCESS CODE</div>
+            <input class="login-input" id="identityInput" placeholder="身份 · IDENTITY" autocomplete="off">
+            <input class="login-input" id="passwordInput" type="password" placeholder="密码 · ACCESS CODE" autocomplete="off">
+            <div class="login-feedback" id="loginFeedback"></div>
+            <div class="back-btn" id="backBtn">← 返回</div>
+        </div>
+
+        <!-- 个人信息档案页 -->
+        <div class="profile-layer" id="profileLayer">
+            <div class="top-logo" style="display:block;">Sariel</div>
+            <div class="profile-card">
+                <div class="profile-header">
+                    <div class="profile-name-cn">齐 司 礼</div>
+                    <div class="profile-name-en">Sariel</div>
+                </div>
+
+                <div class="profile-grid">
+                    <div><div class="profile-item-label">Birth</div><div class="profile-item-value">09.01</div></div>
+                    <div><div class="profile-item-label">Zodiac</div><div class="profile-item-value">处女座</div></div>
+                    <div><div class="profile-item-label">Race</div><div class="profile-item-value">灵族</div></div>
+                    <div><div class="profile-item-label">Height</div><div class="profile-item-value">181 cm</div></div>
+                    <div><div class="profile-item-label">Identity</div><div class="profile-item-value">顶级设计师</div></div>
+                    <div><div class="profile-item-label">Talent</div><div class="profile-item-value gold">非凡再生</div></div>
+                    <div><div class="profile-item-label">Age</div><div class="profile-item-value gold">3000+</div></div>
+                    <div><div class="profile-item-label">Status</div><div class="profile-item-value" style="color:#4FC38A;">● ACTIVE</div></div>
+                </div>
+
+                <div class="chart-section">
+                    <div class="chart-header">
+                        <div class="chart-header-title">资产类别分布 · ASSET ALLOCATION</div>
+                        <div class="chart-tabs">
+                            <div class="chart-tab active" data-chart="donut">DONUT</div>
+                            <div class="chart-tab" data-chart="bar">BAR</div>
+                        </div>
+                    </div>
+
+                    <div id="chartDonut" class="donut-area">
+                        <div class="donut-wrap">
+                            <svg class="donut-chart" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="40" stroke="#D8BD7A" stroke-dasharray="100.5 150.8" stroke-dashoffset="0"></circle>
+                                <circle cx="50" cy="50" r="40" stroke="#b5d9dc" stroke-dasharray="50.3 201" stroke-dashoffset="-100.5"></circle>
+                                <circle cx="50" cy="50" r="40" stroke="#7fb4b8" stroke-dasharray="37.7 213.6" stroke-dashoffset="-150.8"></circle>
+                                <circle cx="50" cy="50" r="40" stroke="#4FC38A" stroke-dasharray="25.1 226.2" stroke-dashoffset="-188.5"></circle>
+                                <circle cx="50" cy="50" r="40" stroke="#9ec8c4" stroke-dasharray="20.1 231.2" stroke-dashoffset="-213.6"></circle>
+                                <circle cx="50" cy="50" r="40" stroke="#c7a86b" stroke-dasharray="12.6 238.7" stroke-dashoffset="-233.7"></circle>
+                                <circle cx="50" cy="50" r="40" stroke="#5e8a86" stroke-dasharray="5 246.2" stroke-dashoffset="-246.2"></circle>
+                            </svg>
+                            <div class="donut-center">
+                                <div class="donut-center-label">TOTAL</div>
+                                <div class="donut-center-value">12.45B</div>
+                            </div>
+                        </div>
+                        <div class="legend-grid">
+                            <div class="legend-item"><div class="legend-left"><span class="legend-dot" style="background:#D8BD7A;"></span>古董收藏</div><div class="legend-right">$5.0B · 40%</div></div>
+                            <div class="legend-item"><div class="legend-left"><span class="legend-dot" style="background:#b5d9dc;"></span>珠宝翡翠</div><div class="legend-right">$2.5B · 20%</div></div>
+                            <div class="legend-item"><div class="legend-left"><span class="legend-dot" style="background:#7fb4b8;"></span>私人市场</div><div class="legend-right">$1.9B · 15%</div></div>
+                            <div class="legend-item"><div class="legend-left"><span class="legend-dot" style="background:#4FC38A;"></span>奢侈品收藏</div><div class="legend-right">$1.2B · 10%</div></div>
+                            <div class="legend-item"><div class="legend-left"><span class="legend-dot" style="background:#9ec8c4;"></span>顶级实验室</div><div class="legend-right">$1.0B · 8%</div></div>
+                            <div class="legend-item"><div class="legend-left"><span class="legend-dot" style="background:#c7a86b;"></span>私人财富</div><div class="legend-right">$0.6B · 5%</div></div>
+                            <div class="legend-item"><div class="legend-left"><span class="legend-dot" style="background:#5e8a86;"></span>私人医疗</div><div class="legend-right">$0.25B · 2%</div></div>
+                        </div>
+                    </div>
+
+                    <div id="chartBar" class="bar-chart-h" style="display:none;">
+                        <div class="bar-row"><div class="bar-label">古董收藏</div><div class="bar-track"><div class="bar-fill-h gold" style="width:0" data-w="100%"></div></div><div class="bar-amount">$5,000,000,000</div></div>
+                        <div class="bar-row"><div class="bar-label">珠宝翡翠</div><div class="bar-track"><div class="bar-fill-h" style="width:0" data-w="50%"></div></div><div class="bar-amount">$2,500,000,000</div></div>
+                        <div class="bar-row"><div class="bar-label">私人市场</div><div class="bar-track"><div class="bar-fill-h" style="width:0" data-w="38%"></div></div><div class="bar-amount">$1,900,000,000</div></div>
+                        <div class="bar-row"><div class="bar-label">奢侈品收藏</div><div class="bar-track"><div class="bar-fill-h" style="width:0" data-w="24%"></div></div><div class="bar-amount">$1,200,000,000</div></div>
+                        <div class="bar-row"><div class="bar-label">顶级实验室</div><div class="bar-track"><div class="bar-fill-h" style="width:0" data-w="20%"></div></div><div class="bar-amount">$1,000,000,000</div></div>
+                        <div class="bar-row"><div class="bar-label">私人财富</div><div class="bar-track"><div class="bar-fill-h" style="width:0" data-w="12%"></div></div><div class="bar-amount">$600,000,000</div></div>
+                        <div class="bar-row"><div class="bar-label">私人医疗队</div><div class="bar-track"><div class="bar-fill-h" style="width:0" data-w="5%"></div></div><div class="bar-amount">$250,000,000</div></div>
+                    </div>
+                </div>
+
+                <div class="profile-bg-title">Background · 背景</div>
+                <div class="profile-bg-text">
+                    灵族血统，天赋「非凡再生」，曾在时间长河中历经三千年沉浮。<br>
+                    现居现代，以顶级设计师身份行走于世，一手缔造「山海工作室」。<br>
+                    名下资产横跨古董、艺术、地产、版权、私募与全球家族信托。<br>
+                    对物质淡然，但对美好事物有近乎苛刻的执念。
+                </div>
+
+                <button class="profile-enter-btn" id="enterAssetsBtn">查 看 资 产 终 端</button>
+            </div>
+        </div>
+
+        <!-- 生物识别层 -->
+        <div class="auth-layer hidden" id="authLayer">
+            <div id="authContent" class="bio-container"></div>
+        </div>
+
+        <!-- 主界面 -->
+        <div class="main-interface hidden" id="mainInterface">
+            <div class="status-bar">
+                <span>● SECURE</span>
+                <span id="clockDisplay">09:41</span>
+            </div>
+
+            <div class="view-container">
+                <div class="view active" id="viewOverview">
+                    <div class="total-net-worth">
+                        <div class="total-label">TOTAL NET WORTH</div>
+                        <div class="total-amount" id="overviewTotal">$12,450,890,000.00</div>
+                        <div class="total-sub">总资产估值 · 齐司礼</div>
+                    </div>
+
+                    <div class="main-tabs">
+                        <div class="tab-btn active" data-view="overview">OVERVIEW</div>
+                        <div class="tab-btn" data-view="cashflow">CASH FLOW</div>
+                    </div>
+
+                    <div class="terminal-feed no-scrollbar" id="terminalFeed"></div>
+                    <div id="coreHoldings"></div>
+
+                    <!-- 资产配置矩阵 -->
+                    <div class="allocation-card">
+                        <div class="allocation-title">ASSET ALLOCATION MATRIX · 资产配置</div>
+                        <div class="allocation-grid">
+                            <div class="mini-donut">
+                                <svg viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="40" stroke="#D8BD7A" stroke-dasharray="70.4 180.9" stroke-dashoffset="0"></circle>
+                                    <circle cx="50" cy="50" r="40" stroke="#b5d9dc" stroke-dasharray="55.3 196" stroke-dashoffset="-70.4"></circle>
+                                    <circle cx="50" cy="50" r="40" stroke="#7fb4b8" stroke-dasharray="50.3 201" stroke-dashoffset="-125.7"></circle>
+                                    <circle cx="50" cy="50" r="40" stroke="#4FC38A" stroke-dasharray="37.7 213.6" stroke-dashoffset="-176"></circle>
+                                    <circle cx="50" cy="50" r="40" stroke="#9ec8c4" stroke-dasharray="37.7 213.6" stroke-dashoffset="-213.7"></circle>
+                                </svg>
+                                <div class="mini-center">
+                                    <div class="mini-center-label">TOTAL</div>
+                                    <div class="mini-center-value">12.45B</div>
+                                </div>
+                            </div>
+                            <div class="alloc-legend">
+                                <div class="alloc-row"><div class="alloc-row-left"><span class="alloc-dot" style="background:#D8BD7A;"></span>全球股市</div><div class="alloc-pct">28%</div></div>
+                                <div class="alloc-row"><div class="alloc-row-left"><span class="alloc-dot" style="background:#b5d9dc;"></span>版权与IP</div><div class="alloc-pct">22%</div></div>
+                                <div class="alloc-row"><div class="alloc-row-left"><span class="alloc-dot" style="background:#7fb4b8;"></span>古董与艺术</div><div class="alloc-pct">20%</div></div>
+                                <div class="alloc-row"><div class="alloc-row-left"><span class="alloc-dot" style="background:#4FC38A;"></span>全球豪宅</div><div class="alloc-pct">15%</div></div>
+                                <div class="alloc-row"><div class="alloc-row-left"><span class="alloc-dot" style="background:#9ec8c4;"></span>另类与现金</div><div class="alloc-pct">15%</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 层级钻取入口 -->
+                    <div class="drill-section">
+                        <div class="drill-entry-title-main">PORTFOLIO STRUCTURE · 资产层级钻取</div>
+                        <div class="asset-category-main" data-category="traditional">
+                            <div class="category-header-main"><span>01 TRADITIONAL ASSETS</span><span class="en">传统资产</span></div>
+                        </div>
+                        <div class="asset-category-main" data-category="alternative">
+                            <div class="category-header-main"><span>02 ALTERNATIVE ASSETS</span><span class="en">另类资产</span></div>
+                        </div>
+                        <div class="asset-category-main" data-category="real">
+                            <div class="category-header-main"><span>03 REAL & COLLECTIBLE</span><span class="en">实物及收藏</span></div>
+                        </div>
+                        <div class="asset-category-main" data-category="family">
+                            <div class="category-header-main"><span>04 SHANHAI STUDIO</span><span class="en">山海工作室</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="view" id="viewCashflow">
+                    <div class="drill-back" id="cashflowBackBtn" style="margin-bottom:6px;">← BACK TO OVERVIEW</div>
+                    <div class="cashflow-header">
+                        <div class="secure-badge"><span class="secure-dot"></span> SECURE</div>
+                        <div class="family-office">PRIVATE FAMILY OFFICE · QI SILI</div>
+                        <div class="welcome-back">WELCOME BACK, SARIEL QI</div>
+                        <div class="family-wealth-large" id="cashflowTotal">$12,450,890,000.00</div>
+                    </div>
+
+                    <div class="macro-ledger-title">THE RECENT MACRO LEDGER · 近30日宏观流水</div>
+                    <div class="ledger-summary">
+                        <div class="summary-item">TOTAL INFLOW<br><span class="summary-value green">+$3.12B</span></div>
+                        <div class="summary-item">TOTAL OUTFLOW<br><span class="summary-value red">-$1.48B</span></div>
+                        <div class="summary-item">NET CASH FLOW<br><span class="summary-value green">+$1.64B</span></div>
+                    </div>
+
+                    <div class="flow-list" id="macroFlowList"></div>
+                    <div class="today-section">
+                        <div class="today-title">TODAY'S MICRO LEDGER · 今日流水</div>
+                        <div id="microFlowList"></div>
+                    </div>
+                </div>
+
+                <div class="view" id="viewDrill">
+                    <div class="drill-view" id="drillContent"></div>
+                </div>
+            </div>
+
+            <div class="ai-fab" id="aiFab">✧</div>
+
+            <div class="ai-dialog-overlay" id="aiDialog">
+                <div class="ai-message" id="aiMessage">
+                    <strong>「齐司礼」</strong>，晚上好。您的私人 AI 财富顾问已上线。<br>
+                    版权库本月新增 <strong>12 项</strong> 注册，古董收藏室一切恒定。
+                </div>
+                <div class="ai-options">
+                    <div class="ai-option-btn" data-ai="ip">版权收益报告</div>
+                    <div class="ai-option-btn" data-ai="antique">古董估值更新</div>
+                    <div class="ai-option-btn" data-ai="liquidity">流动性报告</div>
+                </div>
+            </div>
+
+            <div class="modal-overlay" id="modalOverlay">
+                <div class="modal-card" id="modalContent"></div>
+            </div>
+        </div>
+
+        <div class="security-alert" id="securityAlert">
+            <div style="font-size: 18px; letter-spacing: 4px; color: #b5d9dc; font-weight: 500;">SECURITY ALERT</div>
+            <div style="font-size: 13px; letter-spacing: 2px; color: #E8E8E3;">UNUSUAL SESSION INACTIVITY DETECTED</div>
+            <div class="slide-verify" id="slideVerify">
+                <div class="slide-knob">→</div>
+                <span style="margin-left: 6px;">SLIDE TO VERIFY</span>
+            </div>
+        </div>
+
+        <div class="message-popup" id="messagePopup">
+            <div class="message-avatar">齐</div>
+            <div class="message-sender">齐司礼</div>
+            <div class="message-list" id="messageList"></div>
+            <div class="message-close" id="messageCloseBtn">知道了</div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 数字瀑布 ====================
+        (function() {
+            const canvas = document.getElementById('matrixCanvas');
+            const ctx = canvas.getContext('2d');
+            let width, height, columns = [];
+            function resize() {
+                const dpr = window.devicePixelRatio || 1;
+                width = window.innerWidth; height = window.innerHeight;
+                canvas.width = width * dpr; canvas.height = height * dpr;
+                canvas.style.width = width + 'px'; canvas.style.height = height + 'px';
+                ctx.scale(dpr, dpr); initColumns();
+            }
+            const COL_W = 22;
+            const CHARS = 'USD€▲▼+1.2%0123456789$¥£BTCETH'.split('');
+            const FONT_SIZE = 15;
+            function initColumns() {
+                const colCount = Math.floor(width / COL_W);
+                columns = [];
+                for (let i = 0; i < colCount; i++) {
+                    columns.push({
+                        x: i * COL_W,
+                        drops: Array.from({ length: 6 }, () => ({
+                            y: Math.random() * -height, speed: 0.38 + Math.random() * 0.5,
+                            char: CHARS[Math.floor(Math.random() * CHARS.length)],
+                            timer: Math.floor(Math.random() * 60)
+                        })),
+                        rises: Array.from({ length: 4 }, () => ({
+                            y: height + Math.random() * height, speed: 0.38 + Math.random() * 0.5,
+                            char: CHARS[Math.floor(Math.random() * CHARS.length)],
+                            timer: Math.floor(Math.random() * 60)
+                        }))
+                    });
+                }
+            }
+            function draw() {
+                ctx.fillStyle = 'rgba(5, 6, 7, 0.035)';
+                ctx.fillRect(0, 0, width, height);
+                ctx.font = FONT_SIZE + 'px "SF Mono", Monaco, Menlo, Consolas, monospace';
+                ctx.textBaseline = 'top';
+                columns.forEach(col => {
+                    col.drops.forEach(d => {
+                        d.y += d.speed;
+                        if (d.y > height + 200) { d.y = -Math.random() * 300; d.speed = 0.38 + Math.random() * 0.5; }
+                        d.timer--;
+                        if (d.timer <= 0) { d.char = CHARS[Math.floor(Math.random() * CHARS.length)]; d.timer = Math.floor(Math.random() * 60); }
+                        ctx.fillStyle = Math.random() > 0.7 ? 'rgba(181, 217, 220, 0.8)' : 'rgba(127, 180, 184, 0.6)';
+                        ctx.fillText(d.char, col.x, d.y);
+                    });
+                    col.rises.forEach(r => {
+                        r.y -= r.speed;
+                        if (r.y < -200) { r.y = height + Math.random() * 300; r.speed = 0.38 + Math.random() * 0.5; }
+                        r.timer--;
+                        if (r.timer <= 0) { r.char = CHARS[Math.floor(Math.random() * CHARS.length)]; r.timer = Math.floor(Math.random() * 60); }
+                        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(181, 217, 220, 0.8)' : 'rgba(127, 180, 184, 0.6)';
+                        ctx.fillText(r.char, col.x, r.y);
+                    });
+                });
+                requestAnimationFrame(draw);
+            }
+            window.addEventListener('resize', resize); resize(); draw();
+        })();
+
+        // ==================== 全局 ====================
+        const APP = {
+            securityAlertShown: false,
+            messagePopupShown: false,
+            feedLines: [], feedInterval: null,
+            macroFlows: [], microFlows: [],
+        };
+
+        // ==================== 财富数据 ====================
+        const wealthData = {
+            traditional: {
+                title: "TRADITIONAL ASSETS", subtitle: "传统资产",
+                items: [
+                    { name: "Global Equities", sub: "全球股票", value: "$2,450,000,000", details: { code: "EQ-GLB", cost: "$1.8B", qty: "——", pnl: "+36.1%", custodian: "JPMorgan", lastTrade: "2025-02-18", risk: "中", pledge: "无" } },
+                    { name: "US Treasury Bonds", sub: "美国国债", value: "$1,200,000,000", details: { code: "UST-10Y", cost: "$1.1B", qty: "——", pnl: "+4.2%", custodian: "BNY Mellon", lastTrade: "2025-02-10", risk: "低", pledge: "无" } },
+                    { name: "Corporate Bonds", sub: "公司债券", value: "$890,000,000", details: { code: "CB-IG", cost: "$850M", qty: "——", pnl: "+3.8%", custodian: "Citi", lastTrade: "2025-01-28", risk: "低", pledge: "无" } },
+                    { name: "Money Market", sub: "货币市场", value: "$450,000,000", details: { code: "MMF-USD", cost: "$450M", qty: "——", pnl: "+1.2%", custodian: "Goldman Sachs", lastTrade: "2025-02-20", risk: "极低", pledge: "无" } },
+                    { name: "EM Equities", sub: "新兴市场股票", value: "$320,000,000", details: { code: "EM-EQ", cost: "$280M", qty: "——", pnl: "+14.3%", custodian: "UBS", lastTrade: "2025-02-15", risk: "中高", pledge: "无" } },
+                    { name: "Cash & Equiv.", sub: "现金及等价物", value: "$680,000,000", details: { code: "CASH-USD", cost: "$680M", qty: "——", pnl: "0%", custodian: "DBS", lastTrade: "——", risk: "无", pledge: "无" } }
+                ]
+            },
+            alternative: {
+                title: "ALTERNATIVE ASSETS", subtitle: "另类资产",
+                items: [
+                    { name: "SpaceX Preferred", sub: "SpaceX 优先股", value: "$850,000,000", details: { code: "SPX-PFD", cost: "$250M", qty: "2.5M shares", pnl: "+240%", custodian: "Morgan Stanley", lastTrade: "2025-01-05", risk: "高", pledge: "无" } },
+                    { name: "Sequoia Fund", sub: "红杉资本基金", value: "$1,200,000,000", details: { code: "SEQ-VII", cost: "$600M", qty: "LP Interest", pnl: "+100%", custodian: "Sequoia", lastTrade: "2024-12-10", risk: "高", pledge: "无" } },
+                    { name: "Blackstone PE", sub: "黑石私募股权", value: "$980,000,000", details: { code: "BX-PE", cost: "$700M", qty: "LP Interest", pnl: "+40%", custodian: "Blackstone", lastTrade: "2025-02-01", risk: "中高", pledge: "无" } },
+                    { name: "Bridgewater Hedge", sub: "桥水对冲基金", value: "$720,000,000", details: { code: "BW-HF", cost: "$600M", qty: "LP Interest", pnl: "+20%", custodian: "Bridgewater", lastTrade: "2025-01-20", risk: "中", pledge: "无" } },
+                    { name: "Andreessen Horowitz", sub: "a16z 风投", value: "$650,000,000", details: { code: "A16Z-Fund", cost: "$300M", qty: "LP Interest", pnl: "+116%", custodian: "a16z", lastTrade: "2025-02-12", risk: "高", pledge: "无" } },
+                    { name: "Tiger Global", sub: "老虎环球", value: "$410,000,000", details: { code: "TG-V", cost: "$350M", qty: "LP Interest", pnl: "+17%", custodian: "Tiger", lastTrade: "2025-01-30", risk: "中高", pledge: "无" } },
+                    { name: "Crypto Fund III", sub: "加密基金 III", value: "$380,000,000", details: { code: "CF-III", cost: "$200M", qty: "LP Interest", pnl: "+90%", custodian: "Paradigm", lastTrade: "2025-02-14", risk: "极高", pledge: "无" } },
+                    { name: "Real Estate Debt", sub: "房地产债务基金", value: "$290,000,000", details: { code: "RED-Fund", cost: "$280M", qty: "LP Interest", pnl: "+3.5%", custodian: "Starwood", lastTrade: "2025-02-05", risk: "中", pledge: "无" } },
+                    { name: "Infrastructure Fund", sub: "基础设施基金", value: "$560,000,000", details: { code: "INFRA-II", cost: "$500M", qty: "LP Interest", pnl: "+12%", custodian: "Brookfield", lastTrade: "2025-01-25", risk: "中低", pledge: "无" } },
+                    { name: "Vintage 2020 PE", sub: "2020年份私募", value: "$780,000,000", details: { code: "V20-PE", cost: "$500M", qty: "LP Interest", pnl: "+56%", custodian: "Carlyle", lastTrade: "2025-02-08", risk: "高", pledge: "无" } }
+                ]
+            },
+            real: {
+                title: "REAL & COLLECTIBLE", subtitle: "实物及收藏",
+                items: [
+                    { name: "Manhattan Penthouse", sub: "曼哈顿顶层豪宅", value: "$1,800,000,000", details: { code: "NYC-PH", cost: "$1.2B", qty: "——", pnl: "+50%", custodian: "Vornado", lastTrade: "2024-11-01", risk: "低", pledge: "无" } },
+                    { name: "London Mayfair Estate", sub: "伦敦梅菲尔庄园", value: "$450,000,000", details: { code: "LON-MF", cost: "$380M", qty: "——", pnl: "+18%", custodian: "Knight Frank", lastTrade: "2024-09-15", risk: "低", pledge: "无" } },
+                    { name: "Tokyo Ginza Residence", sub: "东京银座宅邸", value: "$620,000,000", details: { code: "TYO-GZ", cost: "$500M", qty: "——", pnl: "+24%", custodian: "Mitsui", lastTrade: "2025-01-10", risk: "低", pledge: "无" } },
+                    { name: "Paris Ritz Suite", sub: "巴黎丽兹套房", value: "$380,000,000", details: { code: "PAR-RTZ", cost: "$300M", qty: "——", pnl: "+26%", custodian: "Ritz", lastTrade: "2024-12-20", risk: "低", pledge: "无" } },
+                    { name: "Song Dynasty Ruyao", sub: "宋代汝窑天青釉洗", value: "$48,000,000", details: { code: "ANT-SONG", cost: "$30M", qty: "1 piece", pnl: "+60%", custodian: "Private Vault", lastTrade: "2025-02-01", risk: "极低", pledge: "无" } },
+                    { name: "Ming Yongle Blue", sub: "明永乐青花瓷", value: "$36,000,000", details: { code: "ANT-MING", cost: "$25M", qty: "1 piece", pnl: "+44%", custodian: "Private Vault", lastTrade: "2025-01-15", risk: "极低", pledge: "无" } },
+                    { name: "Original Design Manuscripts", sub: "绝版设计手稿全集", value: "Priceless", details: { code: "IP-MANUSCRIPT", cost: "——", qty: "1,200+ pieces", pnl: "——", custodian: "Shanhai Studio", lastTrade: "——", risk: "无价", pledge: "无" } }
+                ]
+            },
+            family: {
+                title: "SHANHAI STUDIO", subtitle: "山海工作室 · 名下机构",
+                items: [
+                    { name: "Shanhai Studio Holdings", sub: "山海工作室控股", value: "$3,200,000,000", details: { code: "SH-STUDIO", cost: "——", qty: "100%", pnl: "——", custodian: "Shanhai Office", lastTrade: "——", risk: "——", pledge: "无" } },
+                    { name: "Shanhai Design IP", sub: "山海设计版权库", value: "$2,800,000,000", details: { code: "SH-IP", cost: "——", qty: "1,200+ registered", pnl: "——", custodian: "Shanhai Office", lastTrade: "——", risk: "——", pledge: "无" } },
+                    { name: "Global Design Patents", sub: "全球设计专利", value: "$1,500,000,000", details: { code: "SH-PATENT", cost: "——", qty: "380 patents", pnl: "——", custodian: "WIPO", lastTrade: "——", risk: "——", pledge: "无" } }
+                ]
+            }
+        };
+
+        const coreHoldingsData = [
+            { name: "SpaceX Preferred", sub: "SpaceX 原始股", value: "$850,000,000", pnl: "+240%", details: wealthData.alternative.items[0].details },
+            { name: "Manhattan Penthouse", sub: "曼哈顿商业地产", value: "$1,800,000,000", pnl: "+50%", details: wealthData.real.items[0].details },
+            { name: "Bitcoin Cold Wallet", sub: "冷钱包 BTC", value: "$420,000,000", pnl: "+68%", details: { code: "BTC-COLD", cost: "$250M", qty: "6,200 BTC", pnl: "+68%", custodian: "Ledger Vault", lastTrade: "2025-02-15", risk: "高", pledge: "无" } }
+        ];
+
+        // ==================== DOM ====================
+        const landingPage = document.getElementById('landingPage');
+        const loginLayer = document.getElementById('loginLayer');
+        const profileLayer = document.getElementById('profileLayer');
+        const authLayer = document.getElementById('authLayer');
+        const authContent = document.getElementById('authContent');
+        const mainInterface = document.getElementById('mainInterface');
+        const viewOverview = document.getElementById('viewOverview');
+        const viewCashflow = document.getElementById('viewCashflow');
+        const viewDrill = document.getElementById('viewDrill');
+        const drillContent = document.getElementById('drillContent');
+        const overviewTotal = document.getElementById('overviewTotal');
+        const cashflowTotal = document.getElementById('cashflowTotal');
+        const terminalFeed = document.getElementById('terminalFeed');
+        const macroFlowList = document.getElementById('macroFlowList');
+        const microFlowList = document.getElementById('microFlowList');
+        const aiFab = document.getElementById('aiFab');
+        const aiDialog = document.getElementById('aiDialog');
+        const aiMessage = document.getElementById('aiMessage');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalContent = document.getElementById('modalContent');
+        const clockDisplay = document.getElementById('clockDisplay');
+        const coreHoldings = document.getElementById('coreHoldings');
+        const topLogo = document.getElementById('topLogo');
+
+        let messageIndex = 0;
+        const MESSAGES = [
+            '让我看看，抓到了一只笨鸟。',
+            '我给你准备了糕点，来花园，过时不候。',
+            '这不过是些身外之物，只要你开心，全都拿去无妨。'
+        ];
+
+        function init() {
+            updateClock(); setInterval(updateClock, 1000);
+            bindLanding(); bindCharts(); bindMainDrill();
+        }
+        function updateClock() {
+            const now = new Date();
+            clockDisplay.textContent = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+        }
+
+        function bindLanding() {
+            const enterBtn = document.getElementById('enterBtn');
+            const backBtn = document.getElementById('backBtn');
+            const identityInput = document.getElementById('identityInput');
+            const passwordInput = document.getElementById('passwordInput');
+            const loginFeedback = document.getElementById('loginFeedback');
+
+            enterBtn.addEventListener('click', () => {
+                landingPage.style.display = 'none';
+                loginLayer.classList.add('show');
+                setTimeout(() => identityInput.focus(), 300);
+            });
+            backBtn.addEventListener('click', () => {
+                loginLayer.classList.remove('show');
+                landingPage.style.display = 'flex';
+                identityInput.value = ''; passwordInput.value = '';
+                loginFeedback.textContent = '';
+            });
+            identityInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') passwordInput.focus(); });
+            passwordInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const id = identityInput.value.trim();
+                    const pwd = passwordInput.value.trim();
+                    if (id === '齐司礼' && pwd === '740901') {
+                        loginFeedback.textContent = 'ACCESS GRANTED';
+                        loginFeedback.style.color = '#4FC38A';
+                        setTimeout(() => {
+                            loginLayer.classList.remove('show');
+                            authLayer.classList.remove('hidden');
+                            startFacialRecognition();
+                        }, 800);
+                    } else {
+                        loginFeedback.textContent = 'ACCESS DENIED';
+                        loginFeedback.style.color = '#B85C5C';
+                    }
+                }
+            });
+        }
+
+        function bindCharts() {
+            const donut = document.getElementById('chartDonut');
+            const bar = document.getElementById('chartBar');
+            document.querySelectorAll('.chart-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    if (tab.dataset.chart === 'donut') {
+                        donut.style.display = 'grid';
+                        bar.style.display = 'none';
+                    } else {
+                        donut.style.display = 'none';
+                        bar.style.display = 'flex';
+                        setTimeout(() => {
+                            document.querySelectorAll('.bar-fill-h').forEach(el => {
+                                el.style.width = el.dataset.w;
+                            });
+                        }, 50);
+                    }
+                });
+            });
+        }
+
+        function bindMainDrill() {
+            document.querySelectorAll('.asset-category-main').forEach(el => {
+                el.addEventListener('click', () => {
+                    switchView('drill');
+                    renderDrillCategory(el.dataset.category);
+                });
+            });
+        }
+
+        function startFacialRecognition() {
+            authContent.innerHTML = `
+                <div class="auth-title">FACIAL RECOGNITION</div>
+                <div class="face-scan"><div class="face-outline" id="faceOutline"></div><div class="face-line"></div></div>
+                <div style="font-size:12px;color:#72767A;letter-spacing:1px;">SCANNING IDENTITY...</div>
+            `;
+            setTimeout(() => document.getElementById('faceOutline').classList.add('active'), 500);
+            setTimeout(() => {
+                authContent.innerHTML = `
+                    <div class="auth-title" style="color:#4FC38A;">IDENTITY VERIFIED</div>
+                    <div style="font-size:28px;color:#4FC38A;">✓</div>
+                `;
+                setTimeout(() => startFingerprint(), 600);
+            }, 2500);
+        }
+        function startFingerprint() {
+            authContent.innerHTML = `
+                <div class="auth-title">FINGERPRINT AUTHENTICATION</div>
+                <div style="position:relative;width:150px;height:150px;">
+                    <svg class="fingerprint-svg" viewBox="0 0 100 100">
+                        <path class="fingerprint-line" d="M50,10 Q70,10 80,30 Q90,50 80,70 Q70,90 50,90 Q30,90 20,70 Q10,50 20,30 Q30,10 50,10 Z" />
+                        <path class="fingerprint-line" d="M50,20 Q65,20 72,35 Q80,50 72,65 Q65,80 50,80 Q35,80 28,65 Q20,50 28,35 Q35,20 50,20 Z" />
+                        <path class="fingerprint-line" d="M50,30 Q60,30 65,40 Q70,50 65,60 Q60,70 50,70 Q40,70 35,60 Q30,50 35,40 Q40,30 50,30 Z" />
+                    </svg>
+                </div>
+                <div style="font-size:12px;color:#72767A;letter-spacing:1px;">SCANNING BIOMETRIC...</div>
+            `;
+            setTimeout(() => {
+                authContent.innerHTML = `
+                    <div class="auth-title" style="color:#4FC38A;">FINGERPRINT VERIFIED</div>
+                    <div style="font-size:28px;color:#4FC38A;">✓</div>
+                `;
+                setTimeout(() => startIris(), 600);
+            }, 3000);
+        }
+        function startIris() {
+            authContent.innerHTML = `
+                <div class="auth-title">IRIS AUTHENTICATION</div>
+                <div class="iris-scan"><div class="iris-outer"></div><div class="iris-inner"></div><div class="iris-mist"></div></div>
+                <div style="font-size:12px;color:#72767A;letter-spacing:1px;">BIOMETRIC MATCHING...</div>
+            `;
+            setTimeout(() => {
+                authContent.innerHTML = `
+                    <div class="auth-title" style="color:#b5d9dc;">IRIS VERIFIED</div>
+                    <div style="font-size:28px;color:#b5d9dc;">◉</div>
+                `;
+                setTimeout(() => completeAuth(), 600);
+            }, 4000);
+        }
+        function completeAuth() {
+            authLayer.classList.add('hidden');
+            profileLayer.classList.add('show');
+        }
+
+        document.getElementById('enterAssetsBtn').addEventListener('click', () => {
+            profileLayer.classList.remove('show');
+            mainInterface.classList.remove('hidden');
+            topLogo.style.display = 'block';
+            renderMainView();
+            initTerminalFeed();
+            startAutoMessage();
+        });
+
+        function renderMainView() {
+            switchView('overview');
+            overviewTotal.classList.remove('revealed');
+            cashflowTotal.classList.remove('revealed');
+            generateFlows();
+            renderCoreHoldings();
+            renderDrillRoot();
+        }
+
+        function renderCoreHoldings() {
+            coreHoldings.innerHTML = coreHoldingsData.map((item, idx) => `
+                <div class="hold-card" data-hold-idx="${idx}">
+                    <div>
+                        <div class="hold-card-name">${item.name}</div>
+                        <div class="hold-card-sub">${item.sub}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="hold-card-value">${item.value}</div>
+                        <div class="hold-card-pnl">${item.pnl}</div>
+                    </div>
+                </div>
+            `).join('');
+            document.querySelectorAll('.hold-card').forEach(el => {
+                el.addEventListener('click', () => {
+                    const idx = parseInt(el.dataset.holdIdx);
+                    openDetail(coreHoldingsData[idx], coreHoldingsData[idx].details);
+                });
+            });
+        }
+
+        function initTerminalFeed() {
+            const mockLines = [
+                { time: '[09:41]', desc: '佳士得 宋代汝窑天青釉洗成交 $48M' },
+                { time: '[09:42]', desc: '伦敦 梅菲尔庄园估值上调 2.4%' },
+                { time: '[09:43]', desc: '安全警告 古董收藏室湿度异常，已自动调节' },
+                { time: '[09:44]', desc: '巴黎 LVMH 支付设计授权费 $120M' },
+                { time: '[09:45]', desc: 'SpaceX 优先股公允价值上升 $32M' },
+                { time: '[09:46]', desc: '纽约 曼哈顿顶层豪宅租金收入 $8.2M' },
+                { time: '[09:47]', desc: '冷钱包 BTC 余额变动 +12.5 BTC' },
+                { time: '[09:48]', desc: '苏黎世 古董收藏投保金额更新 $1.2B' },
+                { time: '[09:49]', desc: '东京 银座旗舰店季度营收 $28M' },
+                { time: '[09:50]', desc: '桥水基金 月度回报 +2.3%' },
+                { time: '[09:51]', desc: '私人飞机 湾流G700 完成定制内饰交付' },
+                { time: '[09:52]', desc: '巴黎 丽兹酒店分红 $3.8M' },
+                { time: '[09:53]', desc: '红杉资本 基金分配 $45M' },
+                { time: '[09:54]', desc: '山海工作室 新增设计专利 12 项' },
+                { time: '[09:55]', desc: '香港 山海慈善基金新增捐赠 $10M' },
+            ];
+            APP.feedLines = [...mockLines];
+            renderFeed();
+            if (APP.feedInterval) clearInterval(APP.feedInterval);
+            APP.feedInterval = setInterval(() => {
+                const now = new Date();
+                const timeStr = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}]`;
+                const events = [
+                    '纽约 佳士得 拍得明永乐青花瓷 $36M',
+                    '伦敦 劳合社 古董保险赔付到账 $3,400,000',
+                    '新加坡 山海工作室 版权授权费 $28M',
+                    '开曼群岛 信托分配决议通过',
+                    '苏黎世 私人银行 新增黄金持仓 $15M',
+                    '东京 三菱地所 股息 $6,800,000',
+                    '巴黎 佳士得 拍得莫奈作品 $42M',
+                    '摩纳哥 游艇管理费支出 $2,200,000',
+                ];
+                const randomEvent = events[Math.floor(Math.random() * events.length)];
+                APP.feedLines.push({ time: timeStr, desc: randomEvent });
+                if (APP.feedLines.length > 26) APP.feedLines.shift();
+                renderFeed();
+            }, 1800);
+        }
+
+        function renderFeed() {
+            terminalFeed.innerHTML = APP.feedLines.map(line =>
+                `<div class="feed-line"><span class="feed-time">${line.time}</span><span class="feed-desc">${line.desc}</span></div>`
+            ).join('');
+            terminalFeed.scrollTop = terminalFeed.scrollHeight;
+        }
+
+        function generateFlows() {
+            APP.macroFlows = [
+                { amount: '-$450,000,000', desc: '古董购藏：购得宋代汝窑天青釉洗', note: '齐司礼 NOTE：已纳入私人收藏室序列，投保额 $48M。' },
+                { amount: '+$2,100,000,000', desc: '版权授权：与LVMH集团签订全球设计授权协议', note: '齐司礼 NOTE：山海工作室年度授权收入。' },
+                { amount: '-$120,000,000', desc: '豪宅购置：伦敦梅菲尔区乔治亚风格庄园', note: '齐司礼 NOTE：已完成产权登记，作为欧洲居所。' },
+                { amount: '+$850,000,000', desc: '版权诉讼：赢得针对某快时尚品牌侵权案', note: '齐司礼 NOTE：赔偿金已到账，全部捐入山海基金。' },
+                { amount: '-$78,000,000', desc: '私人飞机：湾流 G700 定制内饰设计', note: '齐司礼 NOTE：由山海工作室亲自操刀。' },
+                { amount: '-$210,000,000', desc: '游艇购置：斐帝星定制超级游艇交付', note: '齐司礼 NOTE：命名「山海」，停靠摩纳哥。' },
+                { amount: '+$45,000,000', desc: '古董拍卖：佳士得释出明永乐青花瓷', note: '齐司礼 NOTE：成交价创同类纪录。' },
+                { amount: '-$15,000,000', desc: '慈善捐赠：向山海基金会注资', note: '齐司礼 NOTE：用于传统工艺保护项目。' },
+                { amount: '+$320,000,000', desc: '全球资产调拨：纽约工作室利润汇回', note: '齐司礼 NOTE：已完成跨境结算。' },
+                { amount: '-$28,000,000', desc: '设计版权：收购某新锐设计师全部作品版权', note: '齐司礼 NOTE：纳入山海版权库。' },
+            ];
+            APP.microFlows = [
+                { time: '08:12', amount: '-$2,500,000', desc: '古董修复 · 宋代瓷器' },
+                { time: '09:45', amount: '-$12,000,000', desc: '设计版权注册 · 全球' },
+                { time: '10:30', amount: '+$45,000,000', desc: '版权授权费 · 某奢侈品牌' },
+                { time: '11:15', amount: '-$8,200,000', desc: '艺术品运输及保险' },
+                { time: '13:20', amount: '-$1,800,000', desc: '米其林三星午餐 · 商务' },
+                { time: '15:00', amount: '-$22,000,000', desc: '私人飞机燃油及停泊' },
+                { time: '16:40', amount: '-$5,600,000', desc: '游艇船员薪酬' },
+                { time: '18:00', amount: '-$3,200,000', desc: '工作室运营费用' },
+            ];
+            renderMacroFlows(); renderMicroFlows();
+        }
+        function renderMacroFlows() {
+            macroFlowList.innerHTML = APP.macroFlows.map(flow => `
+                <div class="flow-item">
+                    <div class="flow-amount">${flow.amount}</div>
+                    <div class="flow-desc">${flow.desc}</div>
+                    <div class="flow-note">${flow.note}</div>
+                </div>
+            `).join('');
+        }
+        function renderMicroFlows() {
+            microFlowList.innerHTML = APP.microFlows.map(flow => `
+                <div class="micro-flow">
+                    <span class="micro-time">${flow.time}</span>
+                    <span class="micro-amount">${flow.amount}</span>
+                    <span class="micro-desc">${flow.desc}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderDrillRoot() {
+            const categories = [
+                { key: 'traditional', icon: '01', title: 'TRADITIONAL ASSETS', sub: '传统资产' },
+                { key: 'alternative', icon: '02', title: 'ALTERNATIVE ASSETS', sub: '另类资产' },
+                { key: 'real', icon: '03', title: 'REAL & COLLECTIBLE', sub: '实物及收藏' },
+                { key: 'family', icon: '04', title: 'SHANHAI STUDIO', sub: '山海工作室' },
+            ];
+            drillContent.innerHTML = `
+                <div class="drill-back" id="drillBackBtn">← BACK</div>
+                ${categories.map(cat => `
+                    <div class="asset-category" data-category="${cat.key}">
+                        <div class="category-header"><span>${cat.icon} ${cat.title}</span><span class="en">${cat.sub}</span></div>
+                    </div>
+                `).join('')}
+            `;
+            document.getElementById('drillBackBtn').addEventListener('click', () => switchView('overview'));
+            document.querySelectorAll('.asset-category').forEach(el => {
+                el.addEventListener('click', () => renderDrillCategory(el.dataset.category));
+            });
+        }
+        function renderDrillCategory(catKey) {
+            const data = wealthData[catKey];
+            if (!data) return;
+            drillContent.innerHTML = `
+                <div class="drill-back" id="drillBackBtn">← BACK</div>
+                <div style="margin-bottom:12px;color:#b5d9dc;font-size:14px;letter-spacing:1px;">${data.title} · ${data.subtitle}</div>
+                ${data.items.map((item, idx) => `
+                    <div class="holding-item" data-cat="${catKey}" data-idx="${idx}">
+                        <div class="holding-name">${item.name}</div>
+                        <div class="holding-sub">${item.sub}</div>
+                        <div class="holding-value">${item.value}</div>
+                    </div>
+                `).join('')}
+            `;
+            document.getElementById('drillBackBtn').addEventListener('click', renderDrillRoot);
+            document.querySelectorAll('.holding-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    const cat = el.dataset.cat, idx = parseInt(el.dataset.idx);
+                    openDetail(wealthData[cat].items[idx], wealthData[cat].items[idx].details);
+                });
+            });
+        }
+
+        function openDetail(item, details) {
+            const d = details || {};
+            modalContent.innerHTML = `
+                <div style="font-size:18px;color:#b5d9dc;margin-bottom:4px;font-weight:500;">${item.name}</div>
+                <div style="font-size:12px;color:#72767A;margin-bottom:16px;">${item.sub}</div>
+                <div class="modal-row"><span class="modal-label">代码</span><span class="modal-value">${d.code || '——'}</span></div>
+                <div class="modal-row"><span class="modal-label">成本价</span><span class="modal-value">${d.cost || '——'}</span></div>
+                <div class="modal-row"><span class="modal-label">持仓数量</span><span class="modal-value">${d.qty || '——'}</span></div>
+                <div class="modal-row"><span class="modal-label">浮盈比例</span><span class="modal-value" style="color:#4FC38A;">${d.pnl || '——'}</span></div>
+                <div class="modal-row"><span class="modal-label">托管机构</span><span class="modal-value">${d.custodian || '——'}</span></div>
+                <div class="modal-row"><span class="modal-label">上一次交易</span><span class="modal-value">${d.lastTrade || '——'}</span></div>
+                <div class="modal-row"><span class="modal-label">风险敞口</span><span class="modal-value">${d.risk || '——'}</span></div>
+                <div class="modal-row"><span class="modal-label">质押情况</span><span class="modal-value">${d.pledge || '——'}</span></div>
+                <div style="margin-top:20px;text-align:center;">
+                    <div id="modalCloseBtn" style="padding:12px;border:1px solid #b5d9dc;border-radius:40px;color:#b5d9dc;font-size:13px;letter-spacing:2px;cursor:pointer;">关闭</div>
+                </div>
+            `;
+            modalOverlay.classList.add('show');
+            document.getElementById('modalCloseBtn').addEventListener('click', () => modalOverlay.classList.remove('show'));
+        }
+
+        function switchView(viewName) {
+            viewOverview.classList.remove('active');
+            viewCashflow.classList.remove('active');
+            viewDrill.classList.remove('active');
+            if (viewName === 'overview') viewOverview.classList.add('active');
+            else if (viewName === 'cashflow') viewCashflow.classList.add('active');
+            else if (viewName === 'drill') viewDrill.classList.add('active');
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.view === viewName));
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (btn.dataset.view === 'overview') switchView('overview');
+                else if (btn.dataset.view === 'cashflow') switchView('cashflow');
+            });
+        });
+        overviewTotal.addEventListener('click', () => {
+            overviewTotal.classList.add('revealed');
+            setTimeout(() => overviewTotal.classList.remove('revealed'), 5000);
+        });
+        cashflowTotal.addEventListener('click', () => {
+            cashflowTotal.classList.add('revealed');
+            setTimeout(() => cashflowTotal.classList.remove('revealed'), 5000);
+        });
+        document.getElementById('cashflowBackBtn').addEventListener('click', () => switchView('overview'));
+        aiFab.addEventListener('click', (e) => {
+            e.stopPropagation(); aiDialog.classList.toggle('show');
+        });
+        document.querySelectorAll('.ai-option-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.ai;
+                let msg = '';
+                if (type === 'ip') msg = '山海版权库本月授权收入 <strong>$120M</strong>，同比增长 18%。';
+                else if (type === 'antique') msg = '宋代汝窑天青釉洗估值上调至 <strong>$48M</strong>，建议继续持有。';
+                else if (type === 'liquidity') msg = '当前流动性充足，可随时调动 <strong>$2.3B</strong>。';
+                aiMessage.innerHTML = `<strong>「齐司礼」</strong>：${msg}`;
+            });
+        });
+        document.addEventListener('click', (e) => {
+            if (!aiDialog.contains(e.target) && e.target !== aiFab && !aiFab.contains(e.target)) {
+                aiDialog.classList.remove('show');
+            }
+        });
+
+        function startAutoMessage() {
+            setInterval(() => {
+                if (APP.messagePopupShown) return;
+                triggerMessagePopup();
+            }, 20000);
+        }
+        function triggerMessagePopup() {
+            if (APP.messagePopupShown) return;
+            APP.messagePopupShown = true;
+            const popup = document.getElementById('messagePopup');
+            const messageList = document.getElementById('messageList');
+            messageList.innerHTML = `<div class="message-bubble">${MESSAGES[messageIndex]}</div>`;
+            popup.classList.add('show');
+            const closeBtn = document.getElementById('messageCloseBtn');
+            const closeHandler = function() {
+                popup.classList.remove('show');
+                APP.messagePopupShown = false;
+                messageIndex = (messageIndex + 1) % MESSAGES.length;
+                closeBtn.removeEventListener('click', closeHandler);
+            };
+            closeBtn.addEventListener('click', closeHandler);
+        }
+
+        init();
+    </script>
+</body>
+</html>
